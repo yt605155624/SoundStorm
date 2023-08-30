@@ -35,6 +35,7 @@ def process_sentence(args, fp: Path, output_dir: Path, semantic_tokenizer):
     record = None
     semantic_token_dir = output_dir / "semantic_token"
     semantic_token_dir.mkdir(parents=True, exist_ok=True)
+    os.chmod(semantic_token_dir, 0o777)
     try:
         semantic_token_path = semantic_token_dir / (utt_id + ".npy")
         if os.path.exists(semantic_token_path) and check_numpy_file(

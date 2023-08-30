@@ -1,6 +1,6 @@
 #!/bin/bash
-stage=0
-stop_stage=0
+stage=1
+stop_stage=1
 root_dir=$1
 data_dir=$2
 hubert_path=$3
@@ -43,11 +43,11 @@ fi
 # softlink AcademiCodec/academicodec to ${MAIN_ROOT} first
 
 # get acoustic for small
-# num-cpu=30 for 80G GPU, cost ~ 40 mins
+# num-cpu=30 for 80G GPU, cost ~ 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     echo "get_acoustic_token_11labs.py start!"
     for rank_id in {0..7}; do
-        gpu_id=$((rank_id / 2 + 4))
+        gpu_id=$((rank_id))
         CUDA_VISIBLE_DEVICES=${gpu_id} python3 ${BIN_DIR}/get_acoustic_token_11labs.py \
             --data_dir=${data_dir} \
             --dump_dir=${root_dir}/${dump_dir} \
