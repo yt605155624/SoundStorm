@@ -17,8 +17,7 @@ dump_dir=$6
 # ${nshard} can be 1 for small
 # --num-cpu=256 cost 50G GPU of A100 (这个是不设置 OMP_NUM_THREADS 是的数)
 # OMP_NUM_THREADS=1 占用 9G 显存, OMP_NUM_THREADS=4 10G
-# duplicate 的时候 256 会 OOM
-# cost ~10 mins
+# cost ~6 hours on one machine (可能存在 cpu 资源争抢)
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     echo "get_semantic_token_11labs.py start!"
     for rank_id in {0..7}; do
@@ -43,12 +42,12 @@ fi
 # softlink AcademiCodec/academicodec to ${MAIN_ROOT} first
 
 # get acoustic for small
-# num-cpu=30 for 80G GPU, cost ~ 
+# num-cpu=30 for 80G GPU, cost 2 ~ 3 hours
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     echo "get_acoustic_token_11labs.py start!"
     for rank_id in {0..7}; do
         gpu_id=$((rank_id))
-        CUDA_VISIBLE_DEVICES=${gpu_id} python3 ${BIN_DIR}/get_acoustic_token_11labs.py \
+        OMP_NUM_THREADS=1 CUDA_VISIBLE_DEVICES=${gpu_id} python3 ${BIN_DIR}/get_acoustic_token_11labs.py \
             --data_dir=${data_dir} \
             --dump_dir=${root_dir}/${dump_dir} \
             --codec_name=hificodec \
