@@ -1,6 +1,6 @@
 #!/bin/bash
-stage=1
-stop_stage=1
+stage=0
+stop_stage=0
 root_dir=$1
 data_dir=$2
 hubert_path=$3
@@ -64,7 +64,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 fi
 
 # test the generated acoustic_token
-if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
+if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     mkdir -p codebook2wav_output
     # HiFi-Codec
     python3 ${BIN_DIR}/codebook2wav.py \
@@ -72,7 +72,7 @@ if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
         --model_path=pretrained_model/hificodec/HiFi-Codec-16k-320d-large-universal \
         --config_path=pretrained_model/hificodec/config_16k_320d.json \
         --sr=16000 \
-        --input_path=${root_dir}/${dump_dir}/small/test/acoustic_token/hificodec/'zola_robinson_aj_64kb#small#2784#short_poetry_collection_073_librivox_64kb_mp3_5.npy' \
+        --input_path=${root_dir}/${dump_dir}/test/acoustic_token/hificodec/'ZinedineZidane-ZinedineZidane_999-1.npy' \
         --output_dir=codebook2wav_output/ \
         # --num_quant=3 # NOT WORK HERE, default Nq of HiFi-Codec is 4 and cannot be reduced
 fi
