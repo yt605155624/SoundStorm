@@ -11,22 +11,7 @@ import torch
 import tqdm
 from soundstorm.s2.exps.hubert.feature_utils import get_shard_range
 from soundstorm.s2.models.hubert.semantic_tokenizer import SemanticTokenizer
-
-
-# ThreadPoolExecutor 适用于 I/O 密集型任务，具有轻量级线程切换的优势
-# ProcessPoolExecutor 适用于 CPU 密集型任务，可以充分利用多核处理器的优势
-# 损坏的 numpy 会重新生成
-def check_numpy_file(file_path):
-    try:
-        # 尝试加载 numpy 文件
-        np.load(file_path)
-        # print("文件存在且没有损坏。")
-        return True
-    except Exception:
-        # traceback.print_exc()
-        print(f'Cannot load {file_path}, will return False and regenerate it')
-        return False
-    return False
+from soundstorm.utils import check_numpy_file
 
 
 def process_sentence(args, fp: Path, output_dir: Path, semantic_tokenizer):
@@ -115,14 +100,13 @@ def process_sentences(args,
             line = delimiter.join(row)
             writer.write(line + '\n')
     print(f"tsv file '{filename}' write down")
-    # cost 0.5 ~ 1 hour for LibriLight large
     print(f"time of save stage: {round(time.time() - save_start_time,2)}s")
 
 
 def main():
     # parse config and args
     parser = argparse.ArgumentParser(
-        description="Preprocess audio and then extract features for LibriLight.")
+        description="Preprocess audio and then extract features 11labs datasets.")
 
     parser.add_argument(
         "--data_dir", default=None, type=str, help="directory to dataset.")

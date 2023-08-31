@@ -14,20 +14,7 @@ import numpy as np
 import torch
 import tqdm
 from soundstorm.s2.exps.hubert.feature_utils import get_shard_range
-
-
-# 损坏的 numpy 会重新生成
-def check_numpy_file(file_path):
-    try:
-        # 尝试加载 numpy 文件
-        np.load(file_path)
-        # print("文件存在且没有损坏。")
-        return True
-    except Exception:
-        # traceback.print_exc()
-        print(f'Cannot load {file_path}, will return False and regenerate it')
-        return False
-    return False
+from soundstorm.utils import check_numpy_file
 
 
 def process_sentence(args, fp: Path, output_dir: Path, codec_extractor):
@@ -128,14 +115,13 @@ def process_sentences(args,
     filename = output_dir / "acoustic_token" / f'{args.codec_name}_{args.rank}_{args.nshard}.pth'
     torch.save(acoustic_token_dict, filename)
     print(f"pth file '{filename}' write down")
-
     print(f"time of save stage: {round(time.time() - save_start_time,2)}s")
 
 
 def main():
     # parse config and args
     parser = argparse.ArgumentParser(
-        description="Preprocess audio and then extract features for LibriLight.")
+        description="Preprocess audio and then extract features for 11labs datasets.")
 
     parser.add_argument(
         "--codec_name",
