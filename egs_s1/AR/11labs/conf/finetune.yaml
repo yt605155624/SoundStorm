@@ -3,7 +3,7 @@
 # 一个 epoch 保存的模型数 = `dataset.__len__() / (batch_size * ngpus ** 3 * every_n_train_steps)`
 train:
     seed: 1234
-    epochs: 20
+    epochs: 30  # 要比加载的预训练模型的 epoch 大
     batch_size: 10
     gradient_accumulation: 4
     every_n_train_steps: 200 # 200 for 4 gpus, save 8.4 models per epoch for LibriLight 6k
@@ -20,8 +20,8 @@ data:
     max_sec: 20
     num_workers: 4
     pad_val: 300 # same with EOS in model
-    min_ps_ratio: 5  # 6 for LibriLight 6k
-    max_ps_ratio: 25 # 22 for LibriLight 6k
+    min_ps_ratio: 5  # 6 for LibriLight 6k pretrain
+    max_ps_ratio: 25 # 22 for LibriLight 6k pretrain
 model:
     vocab_size: 301 # EOS + 1
     phoneme_vocab_size: 512

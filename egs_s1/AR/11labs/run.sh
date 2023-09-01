@@ -6,13 +6,16 @@ source path.sh
 gpus=6,7
 stage=0
 stop_stage=100
-train_output_path=exp_11labs/default
+train_output_path=exp_11labs/11labs_scratch
 # dir to set part/all of dump dataset and experiment result
 root_dir='/nfs-speech-cpfs/dev/yuantian04/Vivid_TTS/SoundStorm/SoundStorm/ar_s1/SoundStorm'
 # there should be *.wav 、*/*.wav or */*/*.wav in data_dir
 data_dir='~/datasets/11labs_merge'
 config_path=conf/default.yaml
+# 数据预处理的时候用这个
 dump_dir=dump_11labs
+# 训练的时候用这个，并且把 dump_11labs 软链接进来
+# dump_dir=dump_librilight
 ckpt_name='epoch=99-step=49000.ckpt'
 
 # with the following command, you can choose the stage range you want to run
