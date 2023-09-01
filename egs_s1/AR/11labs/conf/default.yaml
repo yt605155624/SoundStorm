@@ -3,7 +3,7 @@
 # 一个 epoch 保存的模型数 = `dataset.__len__() / (batch_size * ngpus ** 3 * every_n_train_steps)`
 train:
     seed: 1234
-    epochs: 20
+    epochs: 40
     batch_size: 10
     gradient_accumulation: 4
     every_n_train_steps: 200 # 200 for 4 gpus, save 8.4 models per epoch for LibriLight 6k
