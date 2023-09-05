@@ -8,12 +8,12 @@ source path.sh
 gpus=0,1,2,3
 stage=0
 stop_stage=100
-train_output_path='exp_11labs/default'
+train_output_path='exp_11labs/60k_11labs_finetune'
 # dir to set part/all of dump dataset and experiment result
 root_dir='/nfs-speech-cpfs/dev/yuantian04/Vivid_TTS/SoundStorm/SoundStorm/SoundStorm'
 # there should be *.wav 、*/*.wav or */*/*.wav in data_dir
 data_dir='~/datasets/11labs_merge'
-config_path='conf/default.yaml'
+config_path='conf/finetune.yaml'
 log_frequency=1
 # 'tcp://%s:%s' % (MASTER_ADDR, MASTER_PORT)
 dist_url='tcp://127.0.0.1:29505'
@@ -24,7 +24,10 @@ layer=7
 # should be same with ${hubert_path} in hubert_kms.sh
 hubert_path=pretrained_model/hubert/hubert_base_ls960.pt
 quantizer_path=pretrained_model/hubert/train-clean-360_hubert_base_ls960_L7_km300.bin
+# 数据预处理的时候用这个
 dump_dir=dump_11labs
+# 训练的时候用这个，并且把 dump_11labs 软链接进来
+# dump_dir=dump_librilight
 # for synthesize_e2e.sh
 prompt_wav_path='/nfs-speech-cpfs/dev/yuantian04/Vivid_TTS/SoundStorm/SoundStorm/SoundStorm/dump_libritts_base_L9_km500/test/synthesize_input/1006_135212_000060_000004.wav'
 S1_config_file='../../egs_s1/AR/LibriLight/conf/default.yaml'
