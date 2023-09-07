@@ -77,7 +77,7 @@ solver:
                 warmup: 800  # num of iter to warmup
 
 dataloader:
-    max_token_one_batch: 27000 # 11labs 里面有大于 20s 的（LibriLight VAD 最大 20, dataloader 最大用到 23s）, 所以这里要适当减小
+    max_token_one_batch: 30000 # 11labs 里面有大于 20s 的（LibriLight VAD 最大 20, dataloader 最大用到 23s）, 所以这里要适当减小
     num_workers: 4
     prefetch_factor: 50
     train_datasets: # a list of configures, so we can combine several schedulers
@@ -87,7 +87,7 @@ dataloader:
                 num_quant: 4    # not work when != 4 for hificodec, and can be 3 for soundstream and encodec
                 semantic_token_nums: 300 # same with num of kmeans bins
                 max_prompt_sec: 3        # be same with LibriTTS
-                max_target_sec: 17       # LibriLight 中真正有用的是 17, 否则 position emb 可能报错
+                max_target_sec: 20       # LibriLight 中真正有用的是 17, 否则 position emb 可能报错
                 semantic_paths: ['dump/small/train/semantic_token_0_3.tsv', 'dump/small/train/semantic_token_1_3.tsv']
                 acoustic_paths: ['dump/small/train/acoustic_token/hificodec_0_3.pth', 'dump/small/train/acoustic_token/hificodec_2_3.pth']
 
@@ -98,6 +98,6 @@ dataloader:
                 num_quant: 4    # not work when != 4 for hificodec, and can be 3 for soundstream and encodec
                 semantic_token_nums: 300 # same with num of kmeans bins
                 max_prompt_sec: 3        # be same with LibriTTS
-                max_target_sec: 17       # LibriLight 中真正有用的是 17
+                max_target_sec: 20       # LibriLight 中真正有用的是 17
                 semantic_paths: ['dump/small/dev/semantic_token_0_3.tsv', 'dump/small/dev/semantic_token_1_3.tsv']
                 acoustic_paths: ['dump/small/dev/acoustic_token/hificodec_0_3.pth', 'dump/small/dev/acoustic_token/hificodec_2_3.pth']
