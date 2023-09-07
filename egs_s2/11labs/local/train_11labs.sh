@@ -10,7 +10,8 @@ dump_dir=$6
 omp_num=24
 
 # 注意 *_dirs 参数后面不可以有 ''='
-CUDA_LAUNCH_BLOCKING=1 OMP_NUM_THREADS=${omp_num} python3 ${BIN_DIR}/train_librilight_60k.py \
+# when debug for DDP can use CUDA_LAUNCH_BLOCKING=1
+OMP_NUM_THREADS=${omp_num} python3 ${BIN_DIR}/train_librilight_60k.py \
         --config_file=${config_path} \
         --train_semantic_dirs ''${root_dir}'/'${dump_dir}'/11labs/train/' \
         --train_acoustic_dirs ''${root_dir}'/'${dump_dir}'/11labs/train/acoustic_token/' \
