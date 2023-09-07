@@ -14,8 +14,8 @@ OMP_NUM_THREADS=${omp_num} python3 ${BIN_DIR}/train_librilight_60k.py \
         --config_file=${config_path} \
         --train_semantic_dirs ''${root_dir}'/'${dump_dir}'/small/train/' ''${root_dir}'/'${dump_dir}'/medium/train/' ''${root_dir}'/'${dump_dir}'/large/train/' ''${root_dir}'/'${dump_dir}'/duplicate/train/' ''${root_dir}'/'${dump_dir}'/11labs/train/' \
         --train_acoustic_dirs ''${root_dir}'/'${dump_dir}'/small/train/acoustic_token/' ''${root_dir}'/'${dump_dir}'/medium/train/acoustic_token/' ''${root_dir}'/'${dump_dir}'/large/train/acoustic_token/' ''${root_dir}'/'${dump_dir}'/duplicate/train/acoustic_token/' ''${root_dir}'/'${dump_dir}'/11labs/train/acoustic_token/' \
-        --dev_semantic_dirs ''${root_dir}'/'${dump_dir}'/small/dev/' ''${root_dir}'/'${dump_dir}'/medium/dev/' ''${root_dir}'/'${dump_dir}'/large/dev/' ''${root_dir}'/'${dump_dir}'/duplicate/dev/' ''${root_dir}'/'${dump_dir}'/11labs/dev/' \
-        --dev_acoustic_dirs ''${root_dir}'/'${dump_dir}'/small/dev/acoustic_token/' ''${root_dir}'/'${dump_dir}'/medium/dev/acoustic_token/' ''${root_dir}'/'${dump_dir}'/large/dev/acoustic_token/' ''${root_dir}'/'${dump_dir}'/duplicate/dev/acoustic_token/' ''${root_dir}'/'${dump_dir}'/11labs/dev/acoustic_token/' \
+        --dev_semantic_dirs ''${root_dir}'/'${dump_dir}'/11labs/dev/' \
+        --dev_acoustic_dirs ''${root_dir}'/'${dump_dir}'/11labs/dev/acoustic_token/' \
         --output=${root_dir}/${train_output_path} \
         --log_frequency=${log_frequency} \
         --dist_url=${dist_url} \
