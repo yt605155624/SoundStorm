@@ -593,7 +593,7 @@ class Solver(object):
                 # is_primary() 只会用到 0 卡的数据进行 valid
                 if is_primary():
                     print("start validate_iter ...")
-                    # self.validate_iter()
+                    self.validate_iter()
             if self.last_iter != 0 and self.last_iter % self.save_iters == 0:
                 if is_primary():
                     print("start save_iter ...")
