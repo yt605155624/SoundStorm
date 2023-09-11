@@ -5,7 +5,8 @@
 3. 剔除 phoneme/sec 太大或太小的样本, fengyufei's 上下限 8-30
    直方图 https://github.com/yt605155624/mine_images/issues/1#issuecomment-1683696942, 6 ~ 22 比较合适
 '''
-import os
+import random
+import time
 from typing import Dict
 from typing import List
 
@@ -14,10 +15,8 @@ import pandas as pd
 import torch
 from soundstorm.s1.AR.data.dataset import batch_sequences
 from soundstorm.s1.AR.text_processing.phonemizer import GruutPhonemizer
-from soundstorm.utils import get_files_by_prefix_suffix
 from torch.utils.data import DataLoader
 from torch.utils.data import Dataset
-import time
 
 
 def get_key_name(file_path: str):
@@ -34,9 +33,9 @@ class Text2SemanticDataset(Dataset):
 
     def __init__(
             self,
-            phoneme_dirs: str,
-            semantic_dirs: str,
-            non_speech_dirs: str=None,
+            phoneme_paths,
+            semantic_paths,
+            non_speech_paths=None,
             max_sample=None,
             max_sec: int=100,
             pad_val: int=1024,
@@ -50,16 +49,14 @@ class Text2SemanticDataset(Dataset):
         self.phoneme_data_dict = dict()
         self.non_speech_data_dict = dict()
 
-        semantic_files = []
-        phoneme_files = []
-        non_speech_files = []
+        semantic_files = semantic_paths
+        phoneme_files = phoneme_paths
+        non_speech_files = non_speech_paths
 
-        for semantic_dir in semantic_dirs:
-            semantic_files += get_files_by_prefix_suffix(
-                semantic_dir, prefix='semantic_token', suffix='tsv')
-        for phoneme_dir in phoneme_dirs:
-            phoneme_files += get_files_by_prefix_suffix(
-                phoneme_dir, prefix='phonemes', suffix='npy')
+        print("semantic_files:", semantic_files)
+        print("phoneme_files:", phoneme_files)
+        print("non_speech_files:", non_speech_files)
+
         s_st = time.time()
         for semantic_file in semantic_files:
             key_name = get_key_name(semantic_file)
@@ -73,14 +70,10 @@ class Text2SemanticDataset(Dataset):
                 phoneme_file, allow_pickle=True).item()
         print(f"load phoneme_files done, cost {round(time.time()-p_st, 2)}s")
         n_st = time.time()
-        if non_speech_dirs is not None:
-            for non_speech_dir in non_speech_dirs:
-                non_speech_files += get_files_by_prefix_suffix(
-                    non_speech_dir, prefix='non_speech', suffix='npy')
-            for non_speech_file in non_speech_files:
-                key_name = get_key_name(non_speech_file)
-                self.non_speech_data_dict[key_name] = np.load(
-                    non_speech_file, allow_pickle=True).item()
+        for non_speech_file in non_speech_files:
+            key_name = get_key_name(non_speech_file)
+            self.non_speech_data_dict[key_name] = np.load(
+                non_speech_file, allow_pickle=True).item()
         print(f"load non_speech_files done, cost {round(time.time()-n_st, 2)}s")
 
         # pad for semantic tokens
@@ -215,7 +208,6 @@ class Text2SemanticDataset(Dataset):
 
         if key_name in self.non_speech_data_dict:
             del self.non_speech_data_dict[key_name]
-            
 
     def __get_item_names__(self) -> List[str]:
         return self.item_names
@@ -279,10 +271,92 @@ class Text2SemanticDataset(Dataset):
         }
 
 
+class DDPSyncSampler(object):
+    def __init__(self,
+                 size,
+                 seed,
+                 global_rank,
+                 local_rank,
+                 world_size,
+                 shuffle=True):
+        # DataSet 中总 batch 数，
+        self.size = size
+        self.seed = seed
+        # global_rank, 对完整数据集也是按照 global_rank 数划分的
+        self.rank = global_rank
+        self.epoch = 0
+        self.shuffle = shuffle
+        # ❗️ Ensure all GPUs have the same number of batches by adding redundant
+        # sampling indexes. The redundant samples are not shuffled.
+        # Cannot access the "local_rank" variable so it is a bit dirty
+        # get local rank
+        # 此处 local_rank 主要是为了设置 device
+        device = torch.device(f"cuda:{local_rank}")
+        size = torch.Tensor([size]).to(device)
+        # 获得总卡数
+        # dist.get_world_size 对应 dist.get_rank() 是 global_rank
+        # 为 global_rank 的每个 rank 都造一个 size
+        gathered_size = [size for _ in range(world_size)]
+        # list 里面每个值依旧一样
+        torch.distributed.all_gather(gathered_size, size)
+        # 计算当前 gpu 需要 padding 的 batch 数量
+        # always 0
+        self.pad_number = int(max(gathered_size).item() - size.item())
+        # 对 batch index 进行一系列操作, 但是长度还是与 dataset.__len__() 保持一致
+        self.refresh()
+
+    def refresh(self):
+        seq = list(range(self.size))
+        # introduce local randomness by local random shuffling
+        # otherwise each global batch will be identical across epochs
+        chunk_size, start = 10, 0
+        random.seed(self.rank + self.seed + self.epoch)
+        while start < self.size:
+            # 分段
+            seg = seq[start:min(self.size, start + chunk_size)]
+            # 打乱该段
+            local_random_order = random.sample(list(range(len(seg))), len(seg))
+            seg = [seg[i] for i in local_random_order]
+            seq[start:min(self.size, start + chunk_size)] = seg
+            start += len(seg)
+
+        # even after this shuffle, the batch lengths across GPUs 
+        # are very similar
+        # 上面是段内打乱，这里是段和段的顺序打乱
+        if self.shuffle:
+            random.seed(self.seed + self.epoch)
+            random.shuffle(seq)
+
+        if self.pad_number > 0:
+            seq = list(range(self.pad_number)) + seq
+        # list(int), 每个值表示 batch index
+        self.seq = seq
+        self.epoch += 1
+
+    def set_epoch(self, epoch):
+        self.epoch = epoch
+
+    def __iter__(self):
+        return iter(self.seq)
+
+    def __len__(self):
+        return len(self.seq)
+
+    def get_state_dict(self):
+        state_dict = {
+            'epoch': self.epoch,
+            'seed': self.seed,
+        }
+        return state_dict
+
+    def load_state_dict(self, d):
+        for k, v in d.items():
+            setattr(self, k, v)
+
+
 if __name__ == '__main__':
     root_dir_1 = '/nfs-speech-cpfs/dev/yuantian04/Vivid_TTS/SoundStorm/SoundStorm/ar_s1/SoundStorm/dump_librilight/small/train/'
     root_dir_2 = '/nfs-speech-cpfs/dev/yuantian04/Vivid_TTS/SoundStorm/SoundStorm/ar_s1/SoundStorm/dump_librilight/medium/train/'
-    import time
     start_build_time = time.time()
     dataset = Text2SemanticDataset(
         phoneme_dirs=[root_dir_1, root_dir_2],
