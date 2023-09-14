@@ -224,7 +224,7 @@ def main():
 
 def get_semantic_file_key_name(semantic_file):
     name_list = semantic_file.split("/")
-    # semantic_token_0_3.tsv -> 0_3
+    # semantic_token_0_3.npy -> 0_3
     rank_name = '_'.join(name_list[-1].split('.')[0].split('_')[-2:])
     # small/medium/large/duplicate_0_3
     key_name = f'{name_list[-3]}_{rank_name}'
@@ -324,7 +324,7 @@ def get_datasplit_for_rank(semantic_dirs, acoustic_dirs, global_rank_num: int):
     all_acoustic_files = []
     for semantic_dir in semantic_dirs:
         all_semantic_files += get_files_by_prefix_suffix(
-            semantic_dir, prefix='semantic_token', suffix='tsv')
+            semantic_dir, prefix='semantic_token', suffix='npy')
     for acoustic_dir in acoustic_dirs:
         all_acoustic_files += get_files_by_prefix_suffix(
             acoustic_dir, prefix='hificodec', suffix='pth')
