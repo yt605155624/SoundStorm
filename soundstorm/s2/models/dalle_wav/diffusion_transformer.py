@@ -93,15 +93,14 @@ def alpha_schedule(time_step,
 
 
 class DiffusionTransformer(nn.Module):
-    def __init__(
-            self,
-            transformer_config=None,
-            diffusion_step: int=100,
-            n_q: int=12,
-            alpha_init_type: str='cos',
-            auxiliary_loss_weight: int=0,
-            adaptive_auxiliary_loss: bool=False,
-            mask_weight=[1, 1], ):
+    def __init__(self,
+                 transformer_config=None,
+                 diffusion_step: int=100,
+                 n_q: int=12,
+                 alpha_init_type: str='cos',
+                 auxiliary_loss_weight: int=0,
+                 adaptive_auxiliary_loss: bool=False,
+                 mask_weight=[1, 1]):
         super().__init__()
         # 在 transformer_conf 文件中，加入这两个参数
         # 不能直接在这里改 diffusion_step, 因为会修改模型参数, 导致和预训练的模型不匹配
@@ -716,7 +715,13 @@ class DiffusionTransformer(nn.Module):
         self.amp = False
         return out
 
-    def sample(self, batch, filter_ratio: float=0.5, return_logits: bool=False):
+    def sample(self,
+               batch,
+               filter_ratio: float=0.5,
+               return_logits: bool=False,
+               inference_step: int=100):
+        self.num_timesteps = inference_step
+
         real_content = batch['target_acoustics']
         batch_size = real_content.shape[0]
         device = self.log_at.device
@@ -780,8 +785,9 @@ class DiffusionTransformer(nn.Module):
                     batch,
                     filter_ratio: float=0.5,
                     return_logits: bool=False,
-                    skip_step: int=1):
-        print("in sample_fast!!!!!!!!")
+                    skip_step: int=1,
+                    inference_step: int=100):
+        self.num_timesteps = inference_step
         real_content = batch['target_acoustics']
         batch_size = real_content.shape[0]
         device = self.log_at.device

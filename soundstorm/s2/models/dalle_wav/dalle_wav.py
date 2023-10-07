@@ -99,7 +99,8 @@ class DALLE(nn.Module):
                          condition=None,
                          filter_ratio: float=0.0,
                          replicate: int=1,
-                         sample_type: str="top0.85r"):
+                         sample_type: str="top0.85r",
+                         inference_step: int=100):
         self.eval()
         con = batch['target_acoustics']
         batch_size = con.shape[0]
@@ -152,17 +153,25 @@ class DALLE(nn.Module):
                 batch=batch,
                 filter_ratio=filter_ratio,
                 return_logits=False,
-                skip_step=int(sample_type.split(',')[1][4:]))
+                skip_step=int(sample_type.split(',')[1][4:]),
+                inference_step=inference_step)
         else:
             trans_out = self.transformer.sample(
-                batch=batch, filter_ratio=filter_ratio, return_logits=False)
+                batch=batch,
+                filter_ratio=filter_ratio,
+                return_logits=False,
+                inference_step=inference_step)
         out['token_pred'] = trans_out['pre_content_token']
         return out
 
     @torch.no_grad()
-    def infer_one(self, batch, sample_type: str="top0.85r"):
+    def infer_one(self,
+                  batch,
+                  sample_type: str="top0.85r",
+                  inference_step: int=50):
         # sample_type = "top0.85r,fast1" for fast inference
-        output = self.generate_content(batch, sample_type=sample_type)
+        output = self.generate_content(
+            batch, sample_type=sample_type, inference_step=inference_step)
         return output
 
     def forward(self, batch, **kwargs):

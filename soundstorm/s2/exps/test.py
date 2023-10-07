@@ -205,7 +205,9 @@ def evaluate(args,
              soundstorm,
              num_quant: int=4,
              max_prompt_sec: int=3,
-             max_target_sec: int=10):
+             max_target_sec: int=10,
+             inference_step: int=100,
+             sample_type: str="top0.85r"):
 
     sample_rate = 16000
     hz = 50
@@ -244,7 +246,10 @@ def evaluate(args,
                 continue
 
             with torch.no_grad():
-                model_out = soundstorm.infer_one(batch)
+                model_out = soundstorm.infer_one(
+                    batch,
+                    inference_step=inference_step,
+                    sample_type=sample_type)
         # calc T without hificodec
         content = model_out['token_pred']
         # shape (B, Nq x T) -> (B, Nq, T)
@@ -298,7 +303,10 @@ def evaluate(args,
                 continue
 
             with torch.no_grad():
-                model_out = soundstorm.infer_one(batch)
+                model_out = soundstorm.infer_one(
+                    batch,
+                    inference_step=inference_step,
+                    sample_type=sample_type)
 
         # calc T without hificodec
         content = model_out['token_pred']
@@ -331,7 +339,9 @@ def evaluate_batch(args,
                    batch_size: int=2,
                    num_quant: int=4,
                    max_prompt_sec: int=3,
-                   max_target_sec: int=10):
+                   max_target_sec: int=10,
+                   inference_step: int=100,
+                   sample_type: str="top0.85r"):
     # 按照顺序读取测试集，若干调音频组成一个 batch
     sample_rate = 16000
     hz = 50
@@ -362,7 +372,10 @@ def evaluate_batch(args,
                 continue
             with torch.no_grad():
                 s_time = t.elapse
-                model_out = soundstorm.infer_one(batch)
+                model_out = soundstorm.infer_one(
+                    batch,
+                    inference_step=inference_step,
+                    sample_type=sample_type)
                 print(f"infer time: {t.elapse - s_time}s")
 
             content = model_out['token_pred']
@@ -464,6 +477,10 @@ def main():
     prompt_semantic_end_id = semantic_token_nums + 1
     target_semantic_end_id = semantic_token_nums + 3
 
+    inference_step = 100
+    # sample_type = "top0.85r,fast1" for fast inference in VQ-Diffusion paper
+    sample_type = "top0.85r"
+
     # cost 14s for a 10s target
     evaluate(
         args,
@@ -471,7 +488,9 @@ def main():
         soundstorm,
         num_quant=num_quant,
         max_prompt_sec=max_prompt_sec,
-        max_target_sec=max_target_sec)
+        max_target_sec=max_target_sec,
+        inference_step=inference_step,
+        sample_type=sample_type)
     # evaluate_batch(
     #     args,
     #     hificodec=hificodec,
@@ -481,7 +500,9 @@ def main():
     #     batch_size=2,
     #     num_quant=num_quant,
     #     max_prompt_sec=max_prompt_sec,
-    #     max_target_sec=max_target_sec)
+    #     max_target_sec=max_target_sec,
+    #     inference_step=inference_step,
+    #     sample_type=sample_type)
 
 
 if __name__ == "__main__":
