@@ -205,7 +205,9 @@ def evaluate(args,
              soundstorm,
              num_quant: int=4,
              max_prompt_sec: int=3,
-             max_target_sec: int=10):
+             max_target_sec: int=10,
+             inference_step: int=100,
+             sample_type: str="top0.85r"):
 
     sample_rate = 16000
     hz = 50
@@ -215,10 +217,61 @@ def evaluate(args,
     acoustic_data = torch.load(args.test_acoustic_path)
     semantic_data = np.load(args.test_semantic_path, allow_pickle=True).item()
 
+    # for warmup
+    warmup_sample = 3
+    warmup_count = 0
+    warmup_semantic_data = {}
+    for key, value in semantic_data.items():
+        if warmup_count < warmup_sample:
+            warmup_semantic_data[key] = value
+            warmup_count += 1
+        else:
+            break
     N = 0
     T = 0
-    max_sample = 20
+    for utt_id in warmup_semantic_data.keys():
+        with timer() as t:
+            # 需要处理 item_name 不在 acoustic_data 中的情况
+            batch = get_batch(
+                acoustic_data,
+                semantic_data,
+                utt_id,
+                num_quant=num_quant,
+                hz=hz,
+                max_prompt_sec=max_prompt_sec,
+                max_target_sec=max_target_sec)
+            batch = move_tensors_to_cuda(batch)
+            # some wrong with this index od data
+            if batch is None:
+                continue
 
+            with torch.no_grad():
+                model_out = soundstorm.infer_one(
+                    batch,
+                    inference_step=inference_step,
+                    sample_type=sample_type)
+        # calc T without hificodec
+        content = model_out['token_pred']
+        # shape (B, Nq x T) -> (B, Nq, T)
+        codes = content.reshape(content.shape[0], num_quant, -1)
+        wav_gen = hificodec_decode(hificodec, codes)
+        wav_gt = hificodec_decode(hificodec, batch['target_acoustics'])
+
+        N += wav_gen.size
+        T += t.elapse
+        speed = wav_gen.size / t.elapse
+        rtf = sample_rate / speed
+        # RTF only for S2
+        print(
+            f"warmup {utt_id},  wave: {wav_gen.shape}, time: {t.elapse}s, Hz: {speed}, RTF: {rtf}."
+        )
+    # RTF only for S2
+    print(f"warmup generation speed: {N / T}Hz, RTF: {sample_rate / (N / T) }")
+
+    print("warm up done!")
+
+    # real inference
+    max_sample = 20
     if max_sample is not None:
         count = 0
         semantic_data_clip = {}
@@ -230,6 +283,9 @@ def evaluate(args,
                 break
         semantic_data = semantic_data_clip
 
+    N = 0
+    T = 0
+    print("--------------------------")
     for utt_id in semantic_data.keys():
         with timer() as t:
             # 需要处理 item_name 不在 acoustic_data 中的情况
@@ -247,24 +303,30 @@ def evaluate(args,
                 continue
 
             with torch.no_grad():
-                model_out = soundstorm.infer_one(batch)
+                model_out = soundstorm.infer_one(
+                    batch,
+                    inference_step=inference_step,
+                    sample_type=sample_type)
 
-            content = model_out['token_pred']
-            # shape (B, Nq x T) -> (B, Nq, T)
-            codes = content.reshape(content.shape[0], num_quant, -1)
-            wav_gen = hificodec_decode(hificodec, codes)
-            wav_gt = hificodec_decode(hificodec, batch['target_acoustics'])
+        # calc T without hificodec
+        content = model_out['token_pred']
+        # shape (B, Nq x T) -> (B, Nq, T)
+        codes = content.reshape(content.shape[0], num_quant, -1)
+        wav_gen = hificodec_decode(hificodec, codes)
+        wav_gt = hificodec_decode(hificodec, batch['target_acoustics'])
 
         N += wav_gen.size
         T += t.elapse
         speed = wav_gen.size / t.elapse
         rtf = sample_rate / speed
+        # RTF only for S2
         print(
             f"{utt_id},  wave: {wav_gen.shape}, time: {t.elapse}s, Hz: {speed}, RTF: {rtf}."
         )
 
         sf.write(output_dir / (utt_id + "_bs1.wav"), wav_gen, sample_rate)
         sf.write(output_dir / (utt_id + "_real_bs1.wav"), wav_gt, sample_rate)
+    # RTF only for S2
     print(f"generation speed: {N / T}Hz, RTF: {sample_rate / (N / T) }")
 
 
@@ -277,7 +339,9 @@ def evaluate_batch(args,
                    batch_size: int=2,
                    num_quant: int=4,
                    max_prompt_sec: int=3,
-                   max_target_sec: int=10):
+                   max_target_sec: int=10,
+                   inference_step: int=100,
+                   sample_type: str="top0.85r"):
     # 按照顺序读取测试集，若干调音频组成一个 batch
     sample_rate = 16000
     hz = 50
@@ -308,7 +372,10 @@ def evaluate_batch(args,
                 continue
             with torch.no_grad():
                 s_time = t.elapse
-                model_out = soundstorm.infer_one(batch)
+                model_out = soundstorm.infer_one(
+                    batch,
+                    inference_step=inference_step,
+                    sample_type=sample_type)
                 print(f"infer time: {t.elapse - s_time}s")
 
             content = model_out['token_pred']
@@ -332,8 +399,8 @@ def evaluate_batch(args,
                     hificodec, codes[j].unsqueeze(0)[:, :, :eos_index])
 
                 sf.write(output_dir / (utt_id + ".wav"), wav_gen, sample_rate)
-                sf.write(output_dir /
-                         (utt_id + "_real.wav"), wav_gt, sample_rate)
+                sf.write(output_dir / (utt_id + "_real.wav"), wav_gt,
+                         sample_rate)
 
 
 def parse_args():
@@ -410,6 +477,10 @@ def main():
     prompt_semantic_end_id = semantic_token_nums + 1
     target_semantic_end_id = semantic_token_nums + 3
 
+    inference_step = 100
+    # sample_type = "top0.85r,fast1" for fast inference in VQ-Diffusion paper
+    sample_type = "top0.85r"
+
     # cost 14s for a 10s target
     evaluate(
         args,
@@ -417,7 +488,9 @@ def main():
         soundstorm,
         num_quant=num_quant,
         max_prompt_sec=max_prompt_sec,
-        max_target_sec=max_target_sec)
+        max_target_sec=max_target_sec,
+        inference_step=inference_step,
+        sample_type=sample_type)
     # evaluate_batch(
     #     args,
     #     hificodec=hificodec,
@@ -427,7 +500,9 @@ def main():
     #     batch_size=2,
     #     num_quant=num_quant,
     #     max_prompt_sec=max_prompt_sec,
-    #     max_target_sec=max_target_sec)
+    #     max_target_sec=max_target_sec,
+    #     inference_step=inference_step,
+    #     sample_type=sample_type)
 
 
 if __name__ == "__main__":
