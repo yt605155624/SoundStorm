@@ -168,7 +168,7 @@ class DALLE(nn.Module):
     def infer_one(self,
                   batch,
                   sample_type: str="top0.85r",
-                  inference_step: int=50):
+                  inference_step: int=100):
         # sample_type = "top0.85r,fast1" for fast inference
         output = self.generate_content(
             batch, sample_type=sample_type, inference_step=inference_step)
