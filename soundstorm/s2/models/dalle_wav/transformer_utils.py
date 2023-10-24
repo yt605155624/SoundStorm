@@ -161,6 +161,7 @@ class CrossAttention(nn.Module):
         # causal mask to ensure that attention is only applied to the left in the input sequence
 
     def forward(self, x, encoder_output, mask=None):
+        # print("x lin L161 of transformer_utils:",x.min(),x.max())
         if mask is not None:
             # (n*b) x .. x ..
             slf_mask = mask.unsqueeze(1).repeat(1, self.n_head, 1, 1)
@@ -179,7 +180,12 @@ class CrossAttention(nn.Module):
         v = self.value(encoder_output).view(B, T_E, self.n_head,
                                             C // self.n_head).transpose(1, 2)
         # (B, nh, T, T_E)
-        att = (q @ k.transpose(-2, -1)) * (1.0 / math.sqrt(k.size(-1)))
+        # print("x.shape:",x.shape)
+        # print("q.shape:",q.shape)
+        # print("k.transpose(-2, -1).shape:",k.transpose(-2, -1).shape)
+        # print("q.shape[-2]:",q.shape[-2],"k.shape[-2]:",k.shape[-2],"q.shape[-2]*k.shape[-2]:",q.shape[-2]*k.shape[-2])
+        matmul_result = q @ k.transpose(-2, -1)
+        att = matmul_result * (1.0 / math.sqrt(k.size(-1)))
         # add mask
         if slf_mask is not None:
             # 对 attention 权重进行 mask
@@ -240,7 +246,12 @@ class AdaLayerNorm(nn.Module):
         self.layernorm = nn.LayerNorm(n_embd, elementwise_affine=False)
 
     def forward(self, x, timestep):
-        emb = self.linear(self.silu(self.emb(timestep))).unsqueeze(1)
+        # print("timestep:",timestep.min(),timestep.max())
+        tmp1 = self.emb(timestep)
+        tmp2 = self.silu(tmp1)
+        # tmp2_numpy = tmp2.cpu().detach().numpy()
+        tmp3 = self.linear(tmp2)
+        emb = tmp3.unsqueeze(1)
         scale, shift = torch.chunk(emb, 2, dim=2)
         x = self.layernorm(x) * (1 + scale) + shift
         return x

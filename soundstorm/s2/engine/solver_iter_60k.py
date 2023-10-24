@@ -531,7 +531,12 @@ class Solver(object):
             # print(f"global_rank: {self.args.global_rank}, train itr: {itr}")
             data_time = time.time() - itr_start
             step_start = time.time()
+            if itr < 703:
+                self.last_iter += 1
+                continue
+            
             loss = self.step(batch, phase='train')
+
             # logging info
             if self.logger and self.last_iter % self.args.log_frequency == 0:
                 info = 'Train: iter {}/{}'.format(self.last_iter,

@@ -8,37 +8,30 @@ source path.sh
 gpus=0,1,2,3
 stage=0
 stop_stage=100
-train_output_path='exp_librilight/60k_default'
+train_output_path='exp_11labs/60k_11labs_finetune'
 # dir to set part/all of dump dataset and experiment result
 root_dir='/nfs-speech-cpfs/dev/yuantian04/Vivid_TTS/SoundStorm/SoundStorm/SoundStorm'
 # there should be *.wav 、*/*.wav or */*/*.wav in data_dir
-data_dir='~/datasets/LibriLight'
-config_path='conf/default.yaml'
+data_dir='~/datasets/11labs_merge'
+config_path='conf/finetune.yaml'
 log_frequency=1
 # 'tcp://%s:%s' % (MASTER_ADDR, MASTER_PORT)
 dist_url='tcp://127.0.0.1:29505'
 # use which checkpoint file to test
-ckpt_name='475500iter.pth'
+ckpt_name='last.pth'
 # should be same with ${layer} in hubert_kms.sh
 layer=7
 # should be same with ${hubert_path} in hubert_kms.sh
 hubert_path=pretrained_model/hubert/hubert_base_ls960.pt
 quantizer_path=pretrained_model/hubert/train-clean-360_hubert_base_ls960_L7_km300.bin
-dump_dir=dump_librilight
+# 数据预处理的时候用这个
+dump_dir=dump_11labs
+# 训练的时候用这个，并且把 dump_11labs 软链接进来
+# dump_dir=dump_librilight
 # for synthesize_e2e.sh
-prompt_wav_path='/nfs-speech-cpfs/dev/yuantian04/Vivid_TTS/SoundStorm/SoundStorm/SoundStorm/exp_librilight/60k_default/synthesize_input/01_methinksiam_richard2_act2_scene1_64kb#small#1497#shakespeare_monologues_vol_5_librivox_64kb_mp3_9.wav'
-# prompt_wav_path='/nfs-speech-cpfs/dev/yuantian04/Vivid_TTS/SoundStorm/SoundStorm/SoundStorm/exp_librilight/60k_default/synthesize_input/ElonMusk-ElonMusk_9999-2.mp3'
-# prompt_wav_path='/nfs-speech-cpfs/dev/yuantian04/Vivid_TTS/SoundStorm/SoundStorm/SoundStorm/exp_librilight/60k_default/synthesize_input/SherlockHolmes-SherlockHolmes_999-1.mp3'
-# prompt_wav_path='/nfs-speech-cpfs/dev/yuantian04/Vivid_TTS/SoundStorm/SoundStorm/SoundStorm/exp_librilight/60k_default/synthesize_input/LJ050-0179.wav'
-# prompt_wav_path='/nfs-speech-cpfs/dev/yuantian04/Vivid_TTS/SoundStorm/SoundStorm/SoundStorm/exp_librilight/60k_default/synthesize_input/Thanos-Thanos_9999-2.mp3'
-# prompt_wav_path='/nfs-speech-cpfs/dev/yuantian04/Vivid_TTS/SoundStorm/SoundStorm/SoundStorm/exp_librilight/60k_default/synthesize_input/KimKardashian-KimKardashian_999-2.mp3'
-# prompt_wav_path='/nfs-speech-cpfs/dev/yuantian04/Vivid_TTS/SoundStorm/SoundStorm/SoundStorm/exp_librilight/60k_default/synthesize_input/YaoMing-YaoMing_999-1.mp3'
-# prompt_wav_path='/nfs-speech-cpfs/dev/yuantian04/Vivid_TTS/SoundStorm/SoundStorm/SoundStorm/exp_librilight/60k_default/synthesize_input/IvanaAlaw-IvanaAlaw_996-2.mp3'
-# prompt_wav_path='/nfs-speech-cpfs/dev/yuantian04/Vivid_TTS/SoundStorm/SoundStorm/SoundStorm/exp_librilight/60k_default/synthesize_input/01_baum_sea_fairies_64kb#small#100#sea_fairies_0812_librivox_64kb_mp3_9.wav'
-
+prompt_wav_path='/nfs-speech-cpfs/dev/yuantian04/Vivid_TTS/SoundStorm/SoundStorm/SoundStorm/dump_libritts_base_L9_km500/test/synthesize_input/1006_135212_000060_000004.wav'
 S1_config_file='../../egs_s1/AR/LibriLight/conf/default.yaml'
-# S1_ckpt_path='/nfs-speech-cpfs/dev/yuantian04/Vivid_TTS/SoundStorm/SoundStorm/ar_s1/SoundStorm/exp_11labs/11labs_scratch/ckpt/epoch=39-step=18400.ckpt'
-S1_ckpt_path='/nfs-speech-cpfs/dev/yuantian04/Vivid_TTS/SoundStorm/SoundStorm/ar_s1/SoundStorm/exp_11labs/6k_11labs_finetune/ckpt/epoch=29-step=46200.ckpt'
+S1_ckpt_path='/nfs-speech-cpfs/dev/yuantian04/Vivid_TTS/SoundStorm/SoundStorm/ar_s1/SoundStorm/exp_librilight/small_medium_filter_nonspeech/ckpt/epoch=19-step=37000.ckpt'
 sil_token=4 # 4 for 300 bin
 
 # with the following command, you can choose the stage range you want to run
@@ -52,7 +45,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
-    CUDA_VISIBLE_DEVICES=${gpus} ./local/train.sh ${config_path} ${train_output_path} ${root_dir} ${log_frequency} ${dist_url} ${dump_dir}|| exit -1
+    CUDA_VISIBLE_DEVICES=${gpus} ./local/train_11labs.sh ${config_path} ${train_output_path} ${root_dir} ${log_frequency} ${dist_url} ${dump_dir}|| exit -1
 fi
 # test with test dataset, prompt and target should be the same audio
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
